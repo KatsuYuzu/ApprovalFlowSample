@@ -18,12 +18,17 @@ namespace ApprovalFlowSample
         //
         // â∫ãLÇÃê›íËÇ "local.settings.json" Ç…ê›íËÇµÇƒÇ≠ÇæÇ≥Ç¢ÅB
         //
-        // "Values": {
-        //   "AzureWebJobsCosmosDBConnectionString": "AccountEndpoint={AccountEndpoint};AccountKey={AccountKey};",
-        //   "ConsumerKey": "{ConsumerKey}",
-        //   "ConsumerSecret": "{ConsumerSecret}",
-        //   "AccessToken": "{AccessToken}",
-        //   "AccessSecret": "{AccessSecret}"
+        // {
+        //   "IsEncrypted": false,
+        //   "Values": {
+        //     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+        //     "AzureWebJobsDashboard": "UseDevelopmentStorage=true",
+        //     "AzureWebJobsCosmosDBConnectionString": "AccountEndpoint={AccountEndpoint};AccountKey={AccountKey};",
+        //     "ConsumerKey": "{Twitter ConsumerKey}",
+        //     "ConsumerSecret": "{Twitter ConsumerSecret}",
+        //     "AccessToken": "{Twitter AccessToken}",
+        //     "AccessSecret": "{Twitter AccessSecret}"
+        //   }
         // }
 
         [FunctionName(nameof(RunTriggerApprovalFlow))]
