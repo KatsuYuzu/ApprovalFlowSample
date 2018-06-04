@@ -1,75 +1,118 @@
+using Microsoft.Azure.Documents;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace ApprovalFlowSample
 {
     public static class ApprovalFlowFunction
     {
-        /// <summary>
-        /// 承認フローを開始します。
-        /// </summary>
-        /// <param name="context"></param>
-        /// <returns></returns>
+        [FunctionName(nameof(TriggerApprovalFlow))]
+        public static void TriggerApprovalFlow(
+            [CosmosDBTrigger("ApprovalFlowSample", "Applications", CreateLeaseCollectionIfNotExists = true)] IReadOnlyList<Document> documents,
+            [OrchestrationClient] DurableOrchestrationClientBase starter)
+        {
+            foreach (var document in documents.Where(x => x.GetPropertyValue<ApplicationStatus>("status") == ApplicationStatus.None))
+            {
+                starter.StartNewAsync(nameof(ApprovalFlowFunction.StartApprovalFlowAsync), document);
+            }
+        }
+
         [FunctionName(nameof(StartApprovalFlowAsync))]
         public static async Task StartApprovalFlowAsync(
             [OrchestrationTrigger] DurableOrchestrationContext context)
         {
-            var input = context.GetInput<string>();
+            var application = context.GetInput<ApplicationEntity>();
 
-            var application = await context.CallActivityAsync<ApplicationEntity>(nameof(RequestApprovalAsync), input);
+            try
+            {
+                var tweetId = await context.CallActivityAsync<long>(nameof(RequestApprovalAsync), application);
 
-            application.IsApproved = await context.CallSubOrchestratorAsync<bool>(nameof(TweetMonitoringFunction.StartTweetMonitoringAsync), application);
+                var isFavorited = await context.CallSubOrchestratorAsync<bool>(nameof(TweetMonitoringFunction.StartTweetMonitoringAsync), tweetId);
 
-            await context.CallActivityAsync(nameof(EndApprovalFlowAsync), application);
+                if (isFavorited)
+                {
+                    await context.CallActivityAsync(nameof(MarkApprovedAsync), application);
+                }
+                else
+                {
+                    await context.CallActivityAsync(nameof(MarkRejectedAsync), application);
+                }
+            }
+            catch (Exception)
+            {
+                await context.CallActivityAsync(nameof(MarkFailedAsync), application);
+            }
         }
 
-        /// <summary>
-        /// 承認を要求します。
-        /// </summary>
-        /// <param name="context"></param>
         [FunctionName(nameof(RequestApprovalAsync))]
-        public static async Task<ApplicationEntity> RequestApprovalAsync(
+        public static async Task<long> RequestApprovalAsync(
             [ActivityTrigger]DurableActivityContext context,
             Binder binder,
             ILogger log)
         {
-            var input = context.GetInput<string>();
+            var application = context.GetInput<ApplicationEntity>();
+
+            if (application.Content == null)
+            {
+                throw new ArgumentNullException(nameof(application.Content), "A content input is required.");
+            }
 
             var twitter = new TwitterClient();
 
-            var tweetId = await twitter.TweetAsync(input);
+            var tweetId = await twitter.TweetAsync(application.Content);
 
-            log.LogInformation($"「{input}」をツイートしました。 Tweet: {tweetId}");
+            log.LogInformation($"{tweetId} をツイートしました。: {application.Content}");
 
-            var collector = await binder.BindAsync<IAsyncCollector<ApplicationEntity>>(
-                new CosmosDBAttribute("ApprovalFlowSample", "Applications") { CreateIfNotExists = true });
+            application.TweetId = tweetId;
+            application.Status = ApplicationStatus.Applying;
 
-            var application = new ApplicationEntity
-            {
-                InstanceId = context.InstanceId,
-                TweetId = tweetId,
-                Content = input
-            };
-
+            var collector = await binder.BindAsync<IAsyncCollector<ApplicationEntity>>(new CosmosDBAttribute("ApprovalFlowSample", "Applications"));
             await collector.AddAsync(application);
 
-            return application;
+            return tweetId;
         }
 
-        /// <summary>
-        /// 承認フローを終了します。
-        /// </summary>
-        /// <param name="context"></param>
-        /// <returns></returns>
-        [FunctionName(nameof(EndApprovalFlowAsync))]
-        public static void EndApprovalFlowAsync(
+        [FunctionName(nameof(MarkApprovedAsync))]
+        public static async Task MarkApprovedAsync(
             [ActivityTrigger]DurableActivityContext context,
-            [CosmosDB("ApprovalFlowSample", "Applications", Id = "{InstanceId}")]ApplicationEntity application)
+            Binder binder)
         {
-            var input = context.GetInput<ApplicationEntity>();
+            var application = context.GetInput<ApplicationEntity>();
 
-            application.IsApproved = input.IsApproved;
+            application.Status = ApplicationStatus.Approved;
+
+            var collector = await binder.BindAsync<IAsyncCollector<ApplicationEntity>>(new CosmosDBAttribute("ApprovalFlowSample", "Applications"));
+            await collector.AddAsync(application);
+        }
+
+        [FunctionName(nameof(MarkRejectedAsync))]
+        public static async Task MarkRejectedAsync(
+            [ActivityTrigger]DurableActivityContext context,
+            Binder binder)
+        {
+            var application = context.GetInput<ApplicationEntity>();
+
+            application.Status = ApplicationStatus.Rejected;
+
+            var collector = await binder.BindAsync<IAsyncCollector<ApplicationEntity>>(new CosmosDBAttribute("ApprovalFlowSample", "Applications"));
+            await collector.AddAsync(application);
+        }
+
+        [FunctionName(nameof(MarkFailedAsync))]
+        public static async Task MarkFailedAsync(
+            [ActivityTrigger]DurableActivityContext context,
+            Binder binder)
+        {
+            var application = context.GetInput<ApplicationEntity>();
+
+            application.Status = ApplicationStatus.Failed;
+
+            var collector = await binder.BindAsync<IAsyncCollector<ApplicationEntity>>(new CosmosDBAttribute("ApprovalFlowSample", "Applications"));
+            await collector.AddAsync(application);
         }
     }
 }

@@ -1,17 +1,24 @@
-﻿using Newtonsoft.Json;
+﻿using Microsoft.Azure.Documents;
+using Newtonsoft.Json;
 
 namespace ApprovalFlowSample
 {
+    public enum ApplicationStatus
+    {
+        None = 0,
+        Applying = 1,
+        Approved = 2,
+        Rejected = 3,
+        Failed = -1
+    }
+
     /// <summary>
     /// 申請。
     /// </summary>
     public class ApplicationEntity
     {
         [JsonProperty("id")]
-        public string Id { get { return InstanceId; } }
-
-        [JsonProperty("instanceId")]
-        public string InstanceId { get; set; }
+        public string Id { get; set; }
 
         [JsonProperty("content")]
         public string Content { get; set; }
@@ -19,7 +26,7 @@ namespace ApprovalFlowSample
         [JsonProperty("tweetId")]
         public long? TweetId { get; set; }
 
-        [JsonProperty("isApproved")]
-        public bool? IsApproved { get; set; }
+        [JsonProperty("status")]
+        public ApplicationStatus Status { get; set; }
     }
 }

@@ -15,41 +15,49 @@ namespace ApprovalFlowSample
             [OrchestrationTrigger] DurableOrchestrationContext context,
             ILogger log)
         {
-            var input = context.GetInput<ApplicationEntity>();
-            if (!context.IsReplaying) { log.LogInformation($"Received monitor request. Tweet: {input?.TweetId}."); }
+            var tweetId = context.GetInput<long>();
+            if (!context.IsReplaying) { log.LogInformation($"Received monitor request. Tweet: {tweetId}."); }
 
-            VerifyRequest(input);
+            VerifyRequest(tweetId);
 
             var endTime = context.CurrentUtcDateTime.AddMinutes(3);
-            if (!context.IsReplaying) { log.LogInformation($"Instantiating monitor for {input.TweetId}. Expires: {endTime}."); }
+            if (!context.IsReplaying) { log.LogInformation($"Instantiating monitor for {tweetId}. Expires: {endTime}."); }
 
             bool isFavorited = false;
 
             while (context.CurrentUtcDateTime < endTime)
             {
-                if (!context.IsReplaying) { log.LogInformation($"Checking current tweet conditions for {input.TweetId} at {context.CurrentUtcDateTime}."); }
+                if (!context.IsReplaying) { log.LogInformation($"Checking current tweet conditions for {tweetId} at {context.CurrentUtcDateTime}."); }
 
                 // Check the tweet
-                isFavorited = await context.CallActivityAsync<bool>(nameof(IsFavoritedAsync), input.TweetId);
+                isFavorited = await context.CallActivityAsync<bool>(nameof(IsFavoritedAsync), tweetId);
 
                 if (isFavorited)
                 {
-                    if (!context.IsReplaying) { log.LogInformation($"Favorited for {input.TweetId}."); }
+                    if (!context.IsReplaying) { log.LogInformation($"Favorited for {tweetId}."); }
                     break;
                 }
                 else
                 {
                     // Wait for the next checkpoint
                     var nextCheckpoint = context.CurrentUtcDateTime.AddMinutes(1);
-                    if (!context.IsReplaying) { log.LogInformation($"Next check for {input.TweetId} at {nextCheckpoint}."); }
+                    if (!context.IsReplaying) { log.LogInformation($"Next check for {tweetId} at {nextCheckpoint}."); }
 
                     await context.CreateTimer(nextCheckpoint, CancellationToken.None);
                 }
             }
 
-            log.LogInformation($"Monitor expiring. Tweet: {input?.TweetId}.");
+            log.LogInformation($"Monitor expiring. Tweet: {tweetId}.");
 
             return isFavorited;
+        }
+
+        private static void VerifyRequest(long tweetId)
+        {
+            if (tweetId == 0)
+            {
+                throw new ArgumentNullException(nameof(tweetId), "A tweetId input is required.");
+            }
         }
 
         [FunctionName(nameof(IsFavoritedAsync))]
@@ -66,19 +74,6 @@ namespace ApprovalFlowSample
             log.LogInformation($"{tweetId} ÇÕÅuÇ¢Ç¢ÇÀÅv{(isFavorited ? "Ç≥ÇÍÇ‹ÇµÇΩ" : "Ç≥ÇÍÇƒÇ¢Ç‹ÇπÇÒ")}");
 
             return isFavorited;
-        }
-
-        private static void VerifyRequest(ApplicationEntity request)
-        {
-            if (request == null)
-            {
-                throw new ArgumentNullException(nameof(request), "An input object is required.");
-            }
-
-            if (request.TweetId == null)
-            {
-                throw new ArgumentNullException(nameof(request.TweetId), "A tweetId input is required.");
-            }
         }
     }
 }
