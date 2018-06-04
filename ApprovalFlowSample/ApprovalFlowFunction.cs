@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace ApprovalFlowSample
 {
-    public static class ApprovalFlowFcuntion
+    public static class ApprovalFlowFunction
     {
         /// <summary>
         /// 承認フローを開始します。
@@ -19,7 +19,7 @@ namespace ApprovalFlowSample
 
             var application = await context.CallActivityAsync<ApplicationEntity>(nameof(RequestApprovalAsync), input);
 
-            application.IsApproved = await context.CallSubOrchestratorAsync<bool>(nameof(TweetMonitoringFcuntion.StartTweetMonitoringAsync), application);
+            application.IsApproved = await context.CallSubOrchestratorAsync<bool>(nameof(TweetMonitoringFunction.StartTweetMonitoringAsync), application);
 
             await context.CallActivityAsync(nameof(EndApprovalFlowAsync), application);
         }

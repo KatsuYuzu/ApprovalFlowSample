@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ApprovalFlowSample
 {
-    public static class TweetMonitoringFcuntion
+    public static class TweetMonitoringFunction
     {
         // See: https://docs.microsoft.com/ja-jp/azure/azure-functions/durable-functions-monitor
 
