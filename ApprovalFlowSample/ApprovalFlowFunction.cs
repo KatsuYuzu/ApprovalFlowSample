@@ -65,7 +65,7 @@ namespace ApprovalFlowSample
 
             var tweetId = await twitter.TweetAsync(application.Content);
 
-            log.LogInformation($"{tweetId} ÇÉcÉCÅ[ÉgÇµÇ‹ÇµÇΩÅB: {application.Content}");
+            log.LogInformation($"{tweetId} „Çí„ÉÑ„Ç§„Éº„Éà„Åó„Åæ„Åó„Åü„ÄÇ: {application.Content}");
 
             application.TweetId = tweetId;
             application.Status = ApplicationStatus.Applying;
