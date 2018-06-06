@@ -8,10 +8,10 @@ namespace ApprovalFlowSample
         private CoreTweet.Tokens CreateTokens()
         {
             return CoreTweet.Tokens.Create(
-                Settings.Instance.ConsumerKey,
-                Settings.Instance.ConsumerSecret,
-                Settings.Instance.AccessToken,
-                Settings.Instance.AccessSecret);
+                Settings.Instance.TwitterConsumerKey,
+                Settings.Instance.TwitterConsumerSecret,
+                Settings.Instance.TwitterAccessToken,
+                Settings.Instance.TwitterAccessSecret);
         }
 
         /// <summary>

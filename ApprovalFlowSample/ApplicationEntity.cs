@@ -1,5 +1,4 @@
-﻿using Microsoft.Azure.Documents;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 
 namespace ApprovalFlowSample
 {

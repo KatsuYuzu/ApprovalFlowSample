@@ -17,9 +17,9 @@ namespace ApprovalFlowSample
             _configuration = builder.Build();
         }
 
-        public string ConsumerKey => _configuration[nameof(ConsumerKey)];
-        public string ConsumerSecret => _configuration[nameof(ConsumerSecret)];
-        public string AccessToken => _configuration[nameof(AccessToken)];
-        public string AccessSecret => _configuration[nameof(AccessSecret)];
+        public string TwitterConsumerKey => _configuration[nameof(TwitterConsumerKey)];
+        public string TwitterConsumerSecret => _configuration[nameof(TwitterConsumerSecret)];
+        public string TwitterAccessToken => _configuration[nameof(TwitterAccessToken)];
+        public string TwitterAccessSecret => _configuration[nameof(TwitterAccessSecret)];
     }
 }
